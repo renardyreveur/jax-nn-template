@@ -1,0 +1,8 @@
+# JAX GPU (wheels only available for Linux)
+--find-links https://storage.googleapis.com/jax-releases/jax_releases.html
+jax[cuda]
+
+# For Jax Windows
+# --find-links https://whls.blob.core.windows.net/unstable/index.html
+# jaxlib==0.3.7
+# jax==0.3.7

@@ -1,2 +1,12 @@
+# Pycharm
 .idea
+
+# Virtual environment
 venv
+
+# Sample data directory/files
+raw
+*.npy
+
+# Cache
+__pycache__

@@ -1,8 +1,15 @@
+import functools
 import random
 
 import jax.numpy as jnp
 
 
+# Function composition
+def fn_compose(*fns):
+    return functools.reduce(lambda f, g: lambda x: f(g(x)), fns, lambda x: x)
+
+
+# Batch Collation
 def default_collate_fn(batch: list):
     try:
         if isinstance(batch[0], tuple) or isinstance(batch[0], list):
@@ -28,15 +35,20 @@ class DataIterator:
         self._idxs = list(range(len(self._dataset)))
 
     def __next__(self):
-        if self._index < (len(self._dataset) // self._batch_size):
+        batches = len(self._dataset) // self._batch_size
+        if len(self._dataset) % self._batch_size:
+            batches += 1
+
+        if self._index < batches-1:
             indices = random.sample(self._idxs, self._batch_size) if self._shuffle else self._idxs[:self._batch_size]
             batch_data = [self._dataset[i] for i in indices]
             self._idxs = list(set(self._idxs) - set(indices))
+            self._index += 1
             return self._collate_fn(batch_data)
-        elif self._index == (len(self._dataset) // self._batch_size):
+        elif self._index == batches-1:
             batch_data = [self._dataset[i] for i in self._idxs]
+            self._index += 1
             return self._collate_fn(batch_data)
-        self._index += 1
 
         raise StopIteration
 
@@ -55,4 +67,4 @@ class BaseDataLoader:
         return batches
 
     def __iter__(self):
-        return DataIterator(self.dataset, self.batch_size, self.collate_fn)
+        return DataIterator(self.dataset, self.batch_size, self.shuffle, self.collate_fn)

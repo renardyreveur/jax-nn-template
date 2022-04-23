@@ -5,8 +5,9 @@ from pathlib import Path
 
 import numpy as np
 import requests
+import jax.numpy as jnp
 
-from base import BaseDataLoader
+from .base import BaseDataLoader, fn_compose
 
 
 # Sample Dataset class - MNIST
@@ -15,7 +16,7 @@ class Dataset:
     mnist_files = ["train-images-idx3-ubyte.gz", "train-labels-idx1-ubyte.gz",
                    "t10k-images-idx3-ubyte.gz", "t10k-labels-idx1-ubyte.gz"]
 
-    def __init__(self, root, test=False):
+    def __init__(self, root, test=False, transform=None):
         # Create Raw data folder to download MNIST files
         if not Path(root, "raw").exists():
             os.mkdir(Path(root, "raw"))
@@ -57,15 +58,28 @@ class Dataset:
         with open(Path(root, "training.npy" if not test else "testing.npy"), 'rb') as f:
             self.data = pickle.load(f)
 
+        # Dataset Transformation
+        self.transform = transform
+
     def __len__(self):
         return self.data[0].shape[0]
 
     def __getitem__(self, idx):
         image, label = self.data[0][idx], self.data[1][idx]
+        if self.transform is not None:
+            image = self.transform(image)
         return image, label
 
 
 class DataLoader(BaseDataLoader):
     def __init__(self, dataset_args, batch_size, shuffle=True, collate_fn=None):
-        dataset = Dataset(**dataset_args)
-        super().__init__(dataset, batch_size, shuffle, collate_fn)
+
+        # Image transformations
+        trsfms = [
+            lambda x: x.astype("float") / 255.,
+            lambda x: np.expand_dims(x, 0),
+            lambda x: jnp.asarray(x)
+        ]
+
+        self.dataset = Dataset(**dataset_args, transform=fn_compose(*trsfms))
+        super().__init__(self.dataset, batch_size, shuffle, collate_fn)

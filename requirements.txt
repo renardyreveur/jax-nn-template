@@ -4,7 +4,11 @@ jax[cuda]; sys_platform == "linux"
 
 # For JAX on Windows; add the following option when installing with pip (--use-deprecated legacy-resolver)
 --find-links https://whls.blob.core.windows.net/unstable/index.html
-jax[cuda]; sys_platform == "win32"
+jax[cuda]==0.3.2; sys_platform == "win32"
 
 requests
 numpy
+wandb
+tf-nightly
+onnxruntime
+tf2onnx

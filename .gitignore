@@ -10,3 +10,11 @@ raw
 
 # Cache
 __pycache__
+saved
+
+# Output files
+*.onnx
+*.tflite
+
+# WandB
+wandb

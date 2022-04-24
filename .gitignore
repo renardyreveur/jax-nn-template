@@ -14,6 +14,12 @@ __pycache__
 # Output files
 *.onnx
 *.tflite
+inference/**/model
+inference/**/*.json
+saved/**/model
+saved/**/*.json
+saved/**/*.log
+*.params
 
 # WandB
 wandb

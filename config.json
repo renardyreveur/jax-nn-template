@@ -50,7 +50,7 @@
 
         "metrics": ["accuracy"],
 
-        "epochs": 20,
+        "epochs": 10,
 
         "checkpoint": "",
 

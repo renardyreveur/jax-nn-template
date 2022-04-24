@@ -5,6 +5,7 @@ import pickle
 import sys
 from functools import partial
 from pathlib import Path
+from shutil import copytree, ignore_patterns
 
 import jax.numpy as jnp
 import numpy as np
@@ -63,26 +64,39 @@ def main(cfg):
     print("TFLite model conversion successful!\n")
 
     # ONNX conversion
-    model_proto, _ = tf2onnx.convert._convert_common(None, tflite_path="jax_mnist.tflite", opset=15,
-                                                     output_path=Path(path, f"{cfg.name}.onnx"))
-    print("Model inputs: ", [n.name for n in model_proto.graph.input])
-    print("Model outputs:", [n.name for n in model_proto.graph.output])
+    try:
+        model_proto, _ = tf2onnx.convert._convert_common(None, tflite_path=str(Path(path, f"{cfg.name}.tflite")), opset=15,
+                                                         output_path=str(Path(path, f"{cfg.name}.onnx")))
+        print("Model inputs: ", [n.name for n in model_proto.graph.input])
+        print("Model outputs:", [n.name for n in model_proto.graph.output])
 
-    # Test result with onnxruntime
-    ort_session = onnxruntime.InferenceSession(str(Path(path, f"{cfg.name}.onnx")), providers=["CPUExecutionProvider"])
+        # Test result with onnxruntime
+        ort_session = onnxruntime.InferenceSession(str(Path(path, f"{cfg.name}.onnx")), providers=["CPUExecutionProvider"])
 
-    ort_input = {ort_session.get_inputs()[0].name: numpy_input}
-    ort_outs = ort_session.run(None, ort_input)
-    print(f"\nONNX: {ort_outs[0]}")
-    # np.testing.assert_almost_equal(expected, ort_outs[0], 1e-5)
-    print("Converted ONNX model is good!\n")
+        ort_input = {ort_session.get_inputs()[0].name: numpy_input}
+        ort_outs = ort_session.run(None, ort_input)
+        print(f"\nONNX: {ort_outs[0]}\n")
+        np.testing.assert_almost_equal(expected, ort_outs[0], 1e-5)
+        print("Converted ONNX model is good!\n")
+    except Exception:
+        print("ONNX Conversion error!, skipping onnx model saving")
+        if Path(path, f"{cfg.name}.onnx").exists():
+            os.remove(Path(path, f"{cfg.name}.onnx"))
+        return -1
+
+    # Copy train configuration to save_dir
+    with open(Path(path, "config.json"), 'w') as f:
+        json.dump(config, f, indent=4)
+
+    # Copy model folder to save_dir
+    copytree(Path("./model"), Path(path, "model"), ignore=ignore_patterns("__init__.py"))
 
 
 if __name__ == "__main__":
     # Command line argument parser
     parser = argparse.ArgumentParser(description="tflite Converter")
     parser.add_argument('-c', '--config', help='Model Configuration', required=True)
-    parser.add_argument('-w', '--ckpt', help='Model Checkpoint', default=None)
+    parser.add_argument('-w', '--ckpt', help='Model Checkpoint', required=True)
     parser.add_argument('-i', '--input', nargs="+", help='Input Size', type=int, required=True)
     parser.add_argument('-n', '--name', help="Inference package name", required=True)
 

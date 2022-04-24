@@ -20,6 +20,7 @@ from utils import init_train, get_training_objects, parameter_count, progress, l
 
 
 def main(config):
+    # ----------------- INITIALIZATION -----------------
     if config['track_experiment']:
         wandb.init(config=flatten(config), **config['wandb'])
     logger = logging.getLogger("main")
@@ -29,7 +30,7 @@ def main(config):
     # Get DataLoader, Model, Optimizer, Loss function
     dataloader = get_training_objects(dl_module, config['data_loader']['loader'], "dataloader")
     testloader = None
-    if 'test_loader' in config['data_loader'].keys():
+    if 'test_loader' in config['data_loader'].keys() and config['data_loader']['test_loader'] != "":
         testloader = get_training_objects(dl_module, config['data_loader']['test_loader'], "dataloader")
     model = get_training_objects(model_module, config['model_struct']['model'], "model")
     optimizer = get_training_objects(opt_module, config['training']['optimizer'], "optimizer")
@@ -40,7 +41,7 @@ def main(config):
     # Prime them with the configuration provided in the JSON file
     try:
         dataloader = dataloader(**config['data_loader']['args'])
-        if 'test_loader' in config['data_loader'].keys():
+        if 'test_loader' in config['data_loader'].keys() and config['data_loader']['test_loader'] != "":
             testloader = testloader(**config['data_loader']['test_args'])
         config['model_struct']['args'] = {k: tuple(v) if isinstance(v, list) else v for k, v in
                                           config['model_struct']['args'].items()}
@@ -80,7 +81,7 @@ def main(config):
     # Initialize optimizer parameters
     opt_params = optimizer(model_params, None)
 
-    # Training loop
+    # ----------------- TRAINING LOOP -----------------
     for epoch in range(config['training']['epochs']):
         logger.newline()
         logger.info(f"---- STARTING EPOCH {epoch + 1} ----")
@@ -118,6 +119,7 @@ def main(config):
         wlog.update({"loss": loss})
         wlog.update({"epoch": epoch+1})
 
+        # ----------------- VALIDATION -----------------
         # Validate on Test set
         if testloader is not None:
             val_loss = 0

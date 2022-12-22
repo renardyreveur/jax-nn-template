@@ -15,9 +15,9 @@ __pycache__
 *.onnx
 *.tflite
 inference/**/model
-inference/**/*.json
+inference/**/*.yaml
 saved/**/model
-saved/**/*.json
+saved/**/*.yaml
 saved/**/*.log
 *.params
 

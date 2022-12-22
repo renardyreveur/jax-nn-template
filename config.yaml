@@ -1,0 +1,79 @@
+---
+# Experiment Configuration
+name: JAX_Template
+n_gpu: 1
+#distributed: false  # Only for n_gpu > 2
+trained_weights: null  # Path to checkpoint
+
+# Experiment Tracking
+track_experiment:
+    track: true
+    config:
+        type: wandb
+        run_id: test-7
+        context: JAX MNIST
+        entity: jeekangaroo
+
+
+# Data Configuration
+dataloader:
+    type: DataLoader
+    args:
+        batch_size: 512
+        shuffle: false
+        root: "./data"
+
+    validation_loader: DataLoader
+    validation_args:
+        batch_size: 512
+        shuffle: true
+        root: "./data"
+        test: true
+
+
+# Model Configuration
+model:
+    type: mnist_model
+    args:
+        feat_dims: !!python/tuple [8, 16, 32]
+
+# Loss Function
+loss: batch_cross_entropy
+
+# Optimizer and Scheduler Configuration
+optimizer:
+    type: adam
+    args:
+        learning_rate: 0.005
+#lr_scheduler:
+#    type: CosineAnnealingLR
+#    args:
+#        T_max: 10
+
+
+# Tracking Metrics
+metrics:
+    - accuracy
+
+
+# Trainer Configuration
+trainer:
+    # Automatic Mixed Precision
+#    amp: false
+
+    # Gradient Clipping
+#    grad_clip: true
+#    grad_clip_value: 5
+
+    # Training epochs and lr warm up epochs
+    epochs: 10
+#    warm_up: 2
+
+    # Save directory and checkpoint interval
+    save_dir: saved/
+    save_period: 5
+
+    # Monitoring and early stopping
+#    monitor: min val_loss
+#    early_stop: 5
+

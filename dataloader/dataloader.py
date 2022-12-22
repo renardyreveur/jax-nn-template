@@ -72,7 +72,7 @@ class Dataset:
 
 
 class DataLoader(BaseDataLoader):
-    def __init__(self, dataset_args, batch_size, shuffle=True, collate_fn=None):
+    def __init__(self, batch_size, shuffle=True, collate_fn=None, **dataset_args):
 
         # Image transformations
         trsfms = [

@@ -2,7 +2,8 @@ import jax.numpy as jnp
 from jax import lax
 from jax import random
 
-from .activations import softmax
+from modules.model.activations import softmax
+from utils import get_params
 
 
 def linear(in_x, proj_dim, bias=True, seed=0, params=None):
@@ -67,35 +68,39 @@ def conv2d(in_x, in_chns, out_chns, kernel_size, padding="VALID", groups=1, stri
     return conv, params
 
 
-def attention(in_x, dim, keys=None, values=None, seed=0, params=None):
-    """ Attention / Self-Attention Layer
-
+def self_attention(in_x: jnp.ndarray,
+                   dim: int, num_heads: int, mask: jnp.ndarray = None,
+                   seed: int = 0, params: [dict] = None) -> (jnp.ndarray, [dict]):
+    """ Self-Attention Layer
     :param in_x: Input array
     :param dim: Query, Key, Value Dimensions
-    :param keys: If provided, use external key (encoder-decoder attention), else self-attention
-    :param values: If provided, used external value
+    :param num_heads: Number of heads in multi-head attention
+    :param mask: Mask to apply to attention scores
     :param seed: Weight initialization seed
     :param params: Layer Parameters
     :return: Output array, Parameters
     """
-    if params is None:
-        k = random.PRNGKey(seed)
-        params = {}
-        for i in ['w_query', 'w_key', 'w_val']:
-            k, subkey = random.split(k)
-            shape = (in_x.shape[-1], dim)
-            p = random.normal(subkey, shape=shape)
-            p *= jnp.sqrt(2 / dim)
-            params.update({i: p})
-
     # Generate Query, Key, Value from input
-    queries = in_x @ params['w_query']
-    if keys is None:
-        keys = in_x @ params['w_key']
-        values = in_x @ params['w_val']
+    qkv, p0 = linear(in_x, dim * 3, seed=seed, params=get_params(params, 0))
+
+    # Split into heads
+    b, s, _ = in_x.shape
+    queries = qkv[:, :, :dim].reshape(b, s, num_heads, dim // num_heads)
+    keys = qkv[:, :, dim:dim * 2].reshape(b, s, num_heads, dim // num_heads)
+    values = qkv[:, :, dim * 2:].reshape(b, s, num_heads, dim // num_heads)
 
     # Calculate attention scores (using query and key) - scaled dot product
-    attn_scores = softmax(1 / jnp.sqrt(queries.shape[-1]) * (queries @ jnp.transpose(keys, axes=[0, 2, 1])))
+    raw_attn_scores = jnp.einsum("i j l m, i o l m->i l j o", queries, keys, optimize='greedy') / jnp.sqrt(
+        dim // num_heads)
+    if mask is not None:
+        raw_attn_scores = raw_attn_scores + mask * -1e9
+    attn_scores = softmax(raw_attn_scores, axis=-1)
 
     # Get sum of weighted values as output
-    return attn_scores @ values, params
+    out = jnp.einsum("i j l m, i m j k -> i l j k", attn_scores, values, optimize='greedy')
+
+    # Concat Heads
+    out = out.reshape(*out.shape[:2], -1)
+    output, p1 = linear(out, dim, seed=seed, params=get_params(params, 1))
+
+    return output, [p0, p1]

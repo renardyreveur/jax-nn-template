@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax import vmap
 
-from model.modules import softmax
+from modules.model.activations import softmax
 
 
 # One hot encoding

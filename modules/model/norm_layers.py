@@ -3,7 +3,6 @@ import jax.numpy as jnp
 
 def layer_norm(in_x, dim, params=None):
     """ Layer Normalization
-
     :param in_x: Input array
     :param dim: Dimension to carry out normalization
     :param params: Layer Parameters
@@ -17,6 +16,8 @@ def layer_norm(in_x, dim, params=None):
     mean = jnp.mean(in_x, axis=dim, keepdims=True)
     var = jnp.var(in_x, axis=dim, keepdims=True)
     x = (in_x - mean) / jnp.sqrt(var + eps)
-    w = jnp.reshape(params['weight'], (1,) * dim + (-1,) + (1,) * (len(in_x.shape) - 1 - dim))
-    b = jnp.reshape(params['bias'], (1,) * dim + (-1,) + (1,) * (len(in_x.shape) - 1 - dim))
-    return w * x + b, params
+    new_shape = [1] * len(in_x.shape)
+    new_shape[dim] = -1
+    w = params['weight'].reshape(new_shape)
+    b = params['bias'].reshape(new_shape)
+    return jnp.multiply(x, w) + b, params

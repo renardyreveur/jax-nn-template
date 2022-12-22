@@ -2,12 +2,12 @@
     "version": 1,
     "disable_existing_loggers": false,
     "formatters": {
-        "log_formatter": {"format": "[%(name)s %(levelname)-8s : %(asctime)s - %(message)s"},
+        "log_formatter": {"format": "[%(name)-11s %(levelname)-8s: %(asctime)s - %(message)s"},
         "blank_formatter": {"format": ""}
     },
     "filters": {
         "fmt_filter": {
-            "()": "utils.Fmt_Filter"
+            "()": "logger.logger.Fmt_Filter"
         }
     },
     "handlers": {
